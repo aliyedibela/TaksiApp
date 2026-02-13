@@ -194,13 +194,3 @@ Uygulama **dark/light** tema desteğine sahiptir. Sürücü panelinde sağ üstt
 
 ---
 
-## 📄 Lisans
-
-Bu proje **Erzurum Büyükşehir Belediyesi** bünyesinde geliştirilmektedir.
-
----
-
-<p align="center">
-  Erzurum Büyükşehir Belediyesi — Bilgi İşlem Dairesi<br/>
-  <a href="https://www.erzurum.bel.tr">www.erzurum.bel.tr</a>
-</p>
