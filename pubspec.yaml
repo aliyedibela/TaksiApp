@@ -1,0 +1,41 @@
+name: taxi_driver_app
+description: Erzurum Taksi Sürücü Uygulaması
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # UI & Animations
+  glassmorphism: ^3.0.0
+  pin_code_fields: ^8.0.1
+  
+  # Network & API
+  http: ^1.1.0
+  signalr_netcore: ^1.3.6
+  
+  # Storage
+  shared_preferences: ^2.2.2
+  
+  # Utils
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  
+  # Eğer ProductSans fontunu kullanacaksan:
+  # fonts:
+  #   - family: ProductSans
+  #     fonts:
+  #       - asset: assets/fonts/ProductSans-Regular.ttf
+  #       - asset: assets/fonts/ProductSans-Bold.ttf
+  #         weight: 700
