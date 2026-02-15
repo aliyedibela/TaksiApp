@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:signalr_netcore/signalr_client.dart';
 import 'login_screen.dart';
+import 'dart:async';
 import 'package:taxi_driver_app/models/driver.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -117,122 +118,174 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
-  void _showIncomingRequest(Map<String, dynamic> data) {
-    final requestId = data['requestId'] as String? ?? '';
-    final fare = (data['estimatedFare'] as num?)?.toStringAsFixed(0) ?? '?';
+ void _showIncomingRequest(Map<String, dynamic> data) {
+  final requestId = data['requestId'] as String? ?? '';
+  final fare = (data['estimatedFare'] as num?)?.toStringAsFixed(0) ?? '?';
+  int remainingSeconds = 60; 
+  Timer? countdownTimer;
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => WillPopScope(
-        onWillPop: () async => false,
-        child: Dialog(
-          backgroundColor: Colors.transparent,
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(28),
-              color: const Color(0xFF1C1C1E),
-              border: Border.all(
-                  color: const Color(0xFFFF6F00).withOpacity(0.6), width: 1.5),
-              boxShadow: [
-                BoxShadow(
-                    color: const Color(0xFFFF6F00).withOpacity(0.3),
-                    blurRadius: 30,
-                    spreadRadius: 2)
-              ],
-            ),
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFF6F00).withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.notifications_active,
-                        color: Color(0xFFFF6F00), size: 26),
-                  ),
-                  const SizedBox(width: 12),
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("Yeni İstek",
-                          style: TextStyle(color: Colors.white70, fontSize: 13, letterSpacing: 1)),
-                      Text("MÜŞTERİ BEKLİYOR",
-                          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                ]),
-                const SizedBox(height: 20),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                        colors: [Color(0xFFFF8F00), Color(0xFFFF6F00)]),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Column(children: [
-                    const Icon(Icons.account_balance_wallet, color: Colors.white70, size: 22),
-                    const SizedBox(height: 8),
-                    const Text("Tahmini Kazanç",
-                        style: TextStyle(color: Colors.white70, fontSize: 13)),
-                    const SizedBox(height: 4),
-                    Text("$fare ₺",
-                        style: const TextStyle(
-                            color: Colors.white, fontSize: 36,
-                            fontWeight: FontWeight.bold, letterSpacing: -1)),
-                  ]),
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (ctx) {
+      return StatefulBuilder(
+        builder: (context, setDialogState) {
+
+          countdownTimer?.cancel();
+          countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+            if (remainingSeconds > 0) {
+              setDialogState(() => remainingSeconds--);
+            } else {
+
+              timer.cancel();
+              Navigator.pop(ctx);
+              _hub!.invoke("RejectRequest", args: [requestId, widget.driver.id]);
+              _showSnack("⏱️ İstek süresi doldu (otomatik red)", Colors.orange);
+            }
+          });
+
+          return WillPopScope(
+            onWillPop: () async => false,
+            child: Dialog(
+              backgroundColor: Colors.transparent,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(28),
+                  color: const Color(0xFF1C1C1E),
+                  border: Border.all(
+                      color: const Color(0xFFFF6F00).withOpacity(0.6), width: 1.5),
+                  boxShadow: [
+                    BoxShadow(
+                        color: const Color(0xFFFF6F00).withOpacity(0.3),
+                        blurRadius: 30,
+                        spreadRadius: 2)
+                  ],
                 ),
-                const SizedBox(height: 20),
-                Row(children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFFEF5350), width: 1.5),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFF6F00).withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.notifications_active,
+                            color: Color(0xFFFF6F00), size: 26),
                       ),
-                      onPressed: () async {
-                        Navigator.pop(ctx);
-                        await _hub!.invoke("RejectRequest", args: [requestId, widget.driver.id]);
-                      },
-                      icon: const Icon(Icons.close, color: Color(0xFFEF5350), size: 20),
-                      label: const Text("Reddet",
-                          style: TextStyle(color: Color(0xFFEF5350), fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFF6F00),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        elevation: 0,
+                      const SizedBox(width: 12),
+                      const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Yeni İstek",
+                              style: TextStyle(color: Colors.white70, fontSize: 13, letterSpacing: 1)),
+                          Text("MÜŞTERİ BEKLİYOR",
+                              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                        ],
                       ),
-                      onPressed: () async {
-                        Navigator.pop(ctx);
-                        await _hub!.invoke("AcceptRequest", args: [requestId, widget.driver.id]);
-                        setState(() => _acceptedRequests++);
-                        _showSnack("✅ Müşteriye gidiliyor!", const Color(0xFF2E7D32));
-                      },
-                      icon: const Icon(Icons.check, color: Colors.white, size: 20),
-                      label: const Text("Kabul Et",
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ]),
+                    const SizedBox(height: 20),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                            colors: [Color(0xFFFF8F00), Color(0xFFFF6F00)]),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Column(children: [
+                        const Icon(Icons.account_balance_wallet, color: Colors.white70, size: 22),
+                        const SizedBox(height: 8),
+                        const Text("Tahmini Kazanç",
+                            style: TextStyle(color: Colors.white70, fontSize: 13)),
+                        const SizedBox(height: 4),
+                        Text("$fare ₺",
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 36,
+                                fontWeight: FontWeight.bold, letterSpacing: -1)),
+                      ]),
                     ),
-                  ),
-                ]),
-              ],
+                    
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white.withOpacity(0.15)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.timer, color: Colors.white70, size: 18),
+                          const SizedBox(width: 8),
+                          Text(
+                            "$remainingSeconds saniye",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 20),
+                    Row(children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFFEF5350), width: 1.5),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          onPressed: () async {
+                            countdownTimer?.cancel();
+                            Navigator.pop(ctx);
+                            await _hub!.invoke("RejectRequest", args: [requestId, widget.driver.id]);
+                          },
+                          icon: const Icon(Icons.close, color: Color(0xFFEF5350), size: 20),
+                          label: const Text("Reddet",
+                              style: TextStyle(color: Color(0xFFEF5350), fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFF6F00),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            elevation: 0,
+                          ),
+                          onPressed: () async {
+                            countdownTimer?.cancel();
+                            Navigator.pop(ctx);
+                            await _hub!.invoke("AcceptRequest", args: [requestId, widget.driver.id]);
+                            setState(() => _acceptedRequests++);
+                            _showSnack("✅ Müşteriye gidiliyor!", const Color(0xFF2E7D32));
+                          },
+                          icon: const Icon(Icons.check, color: Colors.white, size: 20),
+                          label: const Text("Kabul Et",
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ]),
+                  ],
+                ),
+              ),
             ),
-          ),
-        ),
-      ),
-    );
-  }
+          );
+        },
+      );
+    },
+  ).then((_) {
+    countdownTimer?.cancel();
+  });
+}
 
   void _showSnack(String msg, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
