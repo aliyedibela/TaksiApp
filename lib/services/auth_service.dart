@@ -5,7 +5,7 @@ import '../models/driver.dart';
 
 class AuthService {
 
-  static const String baseUrl = 'https://jannette-acrogynous-allene.ngrok-free.dev/api/auth';
+  static const String baseUrl = 'https://taksiappbackendnet-production.up.railway.app/api/auth';
 
   Future<Map<String, dynamic>> signup({
     required String email,
@@ -64,7 +64,12 @@ class AuthService {
         if (data['debugCode'] != null) {
           print('🔐 Debug Code: ${data['debugCode']}');
         }
-        return {'success': true, 'driverId': data['driverId'], 'message': data['message']};
+        return {
+          'success': true,
+          'driverId': data['driverId'],
+          'debugCode': data['debugCode'],
+          'message': data['message'],
+        };
       } else {
         final data = jsonDecode(response.body);
         print('❌ KAYIT BAŞARISIZ: ${data['error']}');
