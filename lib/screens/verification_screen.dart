@@ -178,32 +178,25 @@ class _VerificationScreenState extends State<VerificationScreen>
                   ),
                   const SizedBox(height: 16),
 
-                  // Email gelmedi mi? Debug kodu göster
-                  if (widget.debugCode != null)
-                    GestureDetector(
-                      onTap: () => setState(() => _showDebugCode = !_showDebugCode),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.25),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.white.withOpacity(0.4)),
-                        ),
-                        child: Row(mainAxisSize: MainAxisSize.min, children: [
-                          const Icon(Icons.info_outline, color: Colors.white70, size: 16),
-                          const SizedBox(width: 8),
-                          Text(
-                            _showDebugCode ? 'Kodunuz: ${widget.debugCode}' : 'Email gelmedi mi? Dokun',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: _showDebugCode ? 20 : 13,
-                              fontWeight: _showDebugCode ? FontWeight.bold : FontWeight.normal,
-                              letterSpacing: _showDebugCode ? 4 : 0,
-                            ),
-                          ),
-                        ]),
-                      ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.20),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white.withOpacity(0.3)),
                     ),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.mark_email_read_outlined, color: Colors.white70, size: 16),
+                      const SizedBox(width: 8),
+                      const Flexible(
+                        child: Text(
+                          'Email gönderildi. Göremiyorsanız spam / önemsiz klasörünüzü kontrol edin.',
+                          style: TextStyle(color: Colors.white70, fontSize: 12),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ]),
+                  ),
 
                   const SizedBox(height: 32),
 
