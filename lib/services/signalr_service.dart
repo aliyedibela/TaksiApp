@@ -13,63 +13,62 @@ class SignalRService {
   Function(String)? onRequestClosed;
   Function(String)? onDriverRegistered;
 
+  void _registerHandlers() {
+    _hubConnection.on('NewTaxiRequest', (arguments) {
+      if (arguments != null && arguments.isNotEmpty) {
+        final request = TaxiRequest.fromJson(arguments[0] as Map<String, dynamic>);
+        onNewRequest?.call(request);
+      }
+    });
+
+    _hubConnection.on('RequestClosed', (arguments) {
+      if (arguments != null && arguments.isNotEmpty) {
+        onRequestClosed?.call(arguments[0] as String);
+      }
+    });
+
+    _hubConnection.on('DriverRegistered', (arguments) {
+      if (arguments != null && arguments.isNotEmpty) {
+        final message = (arguments[0] as Map<String, dynamic>)['message'] as String;
+        onDriverRegistered?.call(message);
+      }
+    });
+
+    _hubConnection.onreconnected(({connectionId}) async {
+      print('🔄 SignalR yeniden bağlandı, sürücü kaydediliyor...');
+      if (_currentDriverId != null) {
+        try {
+          await _hubConnection.invoke('RegisterDriver', args: [_currentDriverId]);
+          print('✅ Yeniden kayıt başarılı');
+        } catch (e) {
+          print('⚠️ Yeniden kayıt hatası: $e');
+        }
+      }
+    });
+  }
+
   Future<void> connect(String driverId) async {
     _currentDriverId = driverId;
+
+    // 1. Önce default transport ile dene (Railway negotiate eder)
     try {
       _hubConnection = HubConnectionBuilder()
-          .withUrl(
-            hubUrl,
-            options: HttpConnectionOptions(
-              transport: HttpTransportType.WebSockets,
-              skipNegotiation: false,
-            ),
-          )
+          .withUrl(hubUrl)
           .withAutomaticReconnect(retryDelays: [0, 2000, 5000, 10000, 30000])
           .build();
 
-      _hubConnection.on('NewTaxiRequest', (arguments) {
-        if (arguments != null && arguments.isNotEmpty) {
-          final request = TaxiRequest.fromJson(arguments[0] as Map<String, dynamic>);
-          onNewRequest?.call(request);
-        }
-      });
-
-      _hubConnection.on('RequestClosed', (arguments) {
-        if (arguments != null && arguments.isNotEmpty) {
-          final requestId = arguments[0] as String;
-          onRequestClosed?.call(requestId);
-        }
-      });
-
-      _hubConnection.on('DriverRegistered', (arguments) {
-        if (arguments != null && arguments.isNotEmpty) {
-          final message = (arguments[0] as Map<String, dynamic>)['message'] as String;
-          onDriverRegistered?.call(message);
-        }
-      });
-
-      // Reconnect olunca sürücüyü yeniden kaydet
-      _hubConnection.onreconnected(({connectionId}) async {
-        print('🔄 SignalR yeniden bağlandı, sürücü kaydediliyor...');
-        if (_currentDriverId != null) {
-          await _hubConnection.invoke('RegisterDriver', args: [_currentDriverId]);
-        }
-      });
-
+      _registerHandlers();
       await _hubConnection.start();
       _isConnected = true;
       await _hubConnection.invoke('RegisterDriver', args: [driverId]);
-
-      print('✅ SignalR bağlantısı kuruldu');
+      print('✅ SignalR bağlantısı kuruldu (default transport)');
+      return;
     } catch (e) {
-      print('❌ SignalR bağlantı hatası: $e');
+      print('⚠️ Default transport başarısız: $e');
       _isConnected = false;
-      // LongPolling fallback
-      await _connectWithLongPolling(driverId);
     }
-  }
 
-  Future<void> _connectWithLongPolling(String driverId) async {
+    // 2. LongPolling fallback
     try {
       print('🔄 LongPolling ile tekrar deneniyor...');
       _hubConnection = HubConnectionBuilder()
@@ -79,29 +78,10 @@ class SignalRService {
               transport: HttpTransportType.LongPolling,
             ),
           )
-          .withAutomaticReconnect()
+          .withAutomaticReconnect(retryDelays: [0, 3000, 10000, 30000])
           .build();
 
-      _hubConnection.on('NewTaxiRequest', (arguments) {
-        if (arguments != null && arguments.isNotEmpty) {
-          final request = TaxiRequest.fromJson(arguments[0] as Map<String, dynamic>);
-          onNewRequest?.call(request);
-        }
-      });
-
-      _hubConnection.on('RequestClosed', (arguments) {
-        if (arguments != null && arguments.isNotEmpty) {
-          onRequestClosed?.call(arguments[0] as String);
-        }
-      });
-
-      _hubConnection.on('DriverRegistered', (arguments) {
-        if (arguments != null && arguments.isNotEmpty) {
-          final message = (arguments[0] as Map<String, dynamic>)['message'] as String;
-          onDriverRegistered?.call(message);
-        }
-      });
-
+      _registerHandlers();
       await _hubConnection.start();
       _isConnected = true;
       await _hubConnection.invoke('RegisterDriver', args: [driverId]);

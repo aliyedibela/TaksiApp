@@ -46,49 +46,79 @@ class _DashboardScreenState extends State<DashboardScreen>
     _connectAndRegister();
   }
 
+  static const String _hubUrl = 'https://taksiappbackendnet-production.up.railway.app/taxiHub';
+
+  void _setupHandlers() {
+    _hub!.on("DriverRegistered", (args) {
+      if (!mounted) return;
+      setState(() {
+        _isOnline = true;
+        _statusText = "Çevrimiçi";
+        _isConnecting = false;
+      });
+    });
+
+    _hub!.on("NewTaxiRequest", (args) {
+      if (!_isOnline || !mounted) return;
+      final data = Map<String, dynamic>.from(args?[0] as Map);
+      setState(() => _totalRequests++);
+      _showIncomingRequest(data);
+    });
+
+    _hub!.on("RequestClosed", (args) {
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).maybePop();
+        _showSnack("Bu istek başka sürücü tarafından alındı.", Colors.orange);
+      }
+    });
+
+    _hub!.onreconnected(({connectionId}) => _registerDriver());
+  }
+
   Future<void> _connectAndRegister() async {
     setState(() {
       _isConnecting = true;
       _statusText = "Bağlanıyor...";
     });
+
+    // 1. Default transport (Railway negotiate eder — WebSocket veya LongPolling)
     try {
       _hub = HubConnectionBuilder()
-          .withUrl("https://jannette-acrogynous-allene.ngrok-free.dev/taxiHub")
-          .withAutomaticReconnect()
+          .withUrl(_hubUrl)
+          .withAutomaticReconnect(retryDelays: [0, 2000, 5000, 10000, 30000])
           .build();
 
-      _hub!.on("DriverRegistered", (args) {
-        if (!mounted) return;
-        setState(() {
-          _isOnline = true;
-          _statusText = "Çevrimiçi";
-          _isConnecting = false;
-        });
-      });
+      _setupHandlers();
+      await _hub!.start();
+      await _registerDriver();
+      return;
+    } catch (e) {
+      print('⚠️ Default transport başarısız, LongPolling deneniyor: $e');
+    }
 
-      _hub!.on("NewTaxiRequest", (args) {
-        if (!_isOnline || !mounted) return;
-        final data = Map<String, dynamic>.from(args?[0] as Map);
-        setState(() => _totalRequests++);
-        _showIncomingRequest(data);
-      });
+    // 2. LongPolling fallback
+    try {
+      _hub = HubConnectionBuilder()
+          .withUrl(
+            _hubUrl,
+            options: HttpConnectionOptions(
+              transport: HttpTransportType.LongPolling,
+            ),
+          )
+          .withAutomaticReconnect(retryDelays: [0, 3000, 10000, 30000])
+          .build();
 
-      _hub!.on("RequestClosed", (args) {
-        if (mounted) {
-          Navigator.of(context, rootNavigator: true).maybePop();
-          _showSnack("Bu istek başka sürücü tarafından alındı.", Colors.orange);
-        }
-      });
-
-      _hub!.onreconnected(({connectionId}) => _registerDriver());
-
+      _setupHandlers();
       await _hub!.start();
       await _registerDriver();
     } catch (e) {
-      setState(() {
-        _isConnecting = false;
-        _statusText = "Bağlantı hatası";
-      });
+      print('❌ LongPolling da başarısız: $e');
+      if (mounted) {
+        setState(() {
+          _isConnecting = false;
+          _statusText = "Bağlantı hatası";
+        });
+      }
     }
   }
 
