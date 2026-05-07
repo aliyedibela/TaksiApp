@@ -182,6 +182,28 @@ class AuthService {
     return null;
   }
 
+  Future<Map<String, dynamic>> resendCode(String driverId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/resend-code'),
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
+        },
+        body: jsonEncode({'DriverId': driverId}),
+      ).timeout(const Duration(seconds: 30));
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return {'success': true, 'message': data['message']};
+      } else {
+        return {'success': false, 'error': data['error'] ?? 'Kod gönderilemedi'};
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Bağlantı hatası: $e'};
+    }
+  }
+
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('driver');

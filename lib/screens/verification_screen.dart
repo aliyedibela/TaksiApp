@@ -249,8 +249,14 @@ class _VerificationScreenState extends State<VerificationScreen>
 
                   GestureDetector(
                     onTap: () async {
-
-                      _showSuccess('Yeni kod gönderildi!');
+                      setState(() => _isLoading = true);
+                      final result = await _authService.resendCode(widget.driverId);
+                      setState(() => _isLoading = false);
+                      if (result['success']) {
+                        _showSuccess('Yeni doğrulama kodu emailinize gönderildi!');
+                      } else {
+                        _showError(result['error'] ?? 'Kod gönderilemedi');
+                      }
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
