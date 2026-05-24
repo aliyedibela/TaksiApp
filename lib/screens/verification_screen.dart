@@ -8,14 +8,11 @@ import 'login_screen.dart';
 class VerificationScreen extends StatefulWidget {
   final String driverId;
   final String email;
-  /// Backend'den dönen debug kodu — email gelmediğinde gösterilir
-  final String? debugCode;
 
   const VerificationScreen({
     super.key,
     required this.driverId,
     required this.email,
-    this.debugCode,
   });
 
   @override
@@ -27,7 +24,6 @@ class _VerificationScreenState extends State<VerificationScreen>
   final _codeController = TextEditingController();
   final _authService = AuthService();
   bool _isLoading = false;
-  String? _visibleDebugCode;
 
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
@@ -35,7 +31,6 @@ class _VerificationScreenState extends State<VerificationScreen>
   @override
   void initState() {
     super.initState();
-    _visibleDebugCode = widget.debugCode;
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),
@@ -197,8 +192,8 @@ class _VerificationScreenState extends State<VerificationScreen>
                         Flexible(
                           child: Text(
                             'Email gönderildi. Göremiyorsanız spam / önemsiz klasörünüzü kontrol edin.',
-                            style:
-                                TextStyle(color: Colors.white70, fontSize: 12),
+                            style: TextStyle(
+                                color: Colors.white70, fontSize: 12),
                             textAlign: TextAlign.center,
                           ),
                         ),
@@ -230,8 +225,7 @@ class _VerificationScreenState extends State<VerificationScreen>
                             selectedFillColor:
                                 Colors.white.withOpacity(0.25),
                             activeColor: Colors.white,
-                            inactiveColor:
-                                Colors.white.withOpacity(0.3),
+                            inactiveColor: Colors.white.withOpacity(0.3),
                             selectedColor: Colors.white,
                           ),
                           cursorColor: Colors.white,
@@ -259,24 +253,16 @@ class _VerificationScreenState extends State<VerificationScreen>
 
                   const SizedBox(height: 24),
 
-                  // Kodu tekrar gönder butonu
                   GestureDetector(
                     onTap: () async {
                       setState(() => _isLoading = true);
                       final result =
                           await _authService.resendCode(widget.driverId);
-                      setState(() {
-                        _isLoading = false;
-                        if (result['success'] &&
-                            result['debugCode'] != null) {
-                          _visibleDebugCode = result['debugCode'];
-                        }
-                      });
+                      setState(() => _isLoading = false);
                       if (result['success']) {
-                        _showSuccess('Yeni doğrulama kodu gönderildi!');
+                        _showSuccess('Yeni doğrulama kodu emailinize gönderildi!');
                       } else {
-                        _showError(
-                            result['error'] ?? 'Kod gönderilemedi');
+                        _showError(result['error'] ?? 'Kod gönderilemedi');
                       }
                     },
                     child: Container(
@@ -297,48 +283,6 @@ class _VerificationScreenState extends State<VerificationScreen>
                       ),
                     ),
                   ),
-
-                  // Email gelmediğinde yedek: kodu ekranda göster
-                  if (_visibleDebugCode != null) ...[
-                    const SizedBox(height: 20),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                            color: Colors.white.withOpacity(0.4)),
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Icon(Icons.info_outline,
-                                  color: Colors.white70, size: 14),
-                              SizedBox(width: 6),
-                              Text(
-                                'Email gelmedi mi? Kodun:',
-                                style: TextStyle(
-                                    color: Colors.white70, fontSize: 12),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _visibleDebugCode!,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 10,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),

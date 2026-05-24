@@ -340,7 +340,6 @@ class _SignupScreenState extends State<SignupScreen> {
           builder: (_) => VerificationScreen(
             driverId: result['driverId'],
             email: _emailController.text.trim(),
-            debugCode: result['debugCode'],
           ),
         ),
       );
