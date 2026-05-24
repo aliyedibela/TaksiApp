@@ -195,7 +195,11 @@ class AuthService {
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        return {'success': true, 'message': data['message']};
+        return {
+          'success': true,
+          'message': data['message'],
+          'debugCode': data['debugCode'],
+        };
       } else {
         return {'success': false, 'error': data['error'] ?? 'Kod gönderilemedi'};
       }
